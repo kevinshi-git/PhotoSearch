@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Upload</title>
+    <!-- Bootstrap core CSS -->
+    <link href="./assets/css/bootstrap.min.css" rel="stylesheet">
+  
+   
+    <!-- api gateway generated sdk -->
+    <script src="./assets/js/sdk/lib/axios/dist/axios.standalone.js"></script>
+    <script src="./assets/js/sdk/lib/CryptoJS/rollups/hmac-sha256.js"></script>
+    <script src="./assets/js/sdk/lib/CryptoJS/rollups/sha256.js"></script>
+    <script src="./assets/js/sdk/lib/CryptoJS/components/hmac.js"></script>
+    <script src="./assets/js/sdk/lib/CryptoJS/components/enc-base64.js"></script>
+    <script src="./assets/js/sdk/lib/url-template/url-template.js"></script>
+    <script src="./assets/js/sdk/lib/apiGatewayCore/sigV4Client.js"></script>
+    <script src="./assets/js/sdk/lib/apiGatewayCore/apiGatewayClient.js"></script>
+    <script src="./assets/js/sdk/lib/apiGatewayCore/simpleHttpClient.js"></script>
+    <script src="./assets/js/sdk/lib/apiGatewayCore/utils.js"></script>
+    <script src="./assets/js/sdk/apigClient.js"></script>
+
+    <script src="./assets/js/aws-sdk.min.js"></script>
+</head>
+<body>
+
+    <h1>Upload an Image</h1> 
+    <input type="file" id="imageInput" accept="image/*">
+    <button id="uploadButton">Upload</button>
+    <textarea id="customtagsid" name="customtagsname" rows="4" cols="50" placeholder="custom tages (seperate tags with new line)"></textarea>
+
+
+    <h1>Search Images</h1>
+    <input type="text" id="searchInput" placeholder="Search for images">
+    <button id="searchButton">Search</button>
+
+    <button id="voiceSearchButton">Voice Search</button>
+    <img src="">
+    <div id="image-container"></div>
+
+    <script>
+        var sdk = apigClientFactory.newClient();
+        document.getElementById('uploadButton').addEventListener('click', uploadImage);
+
+        function uploadImage() {//body=image btoa parameter header is content type and custom tags
+            const imageInput = document.getElementById('imageInput');//get file
+            file = imageInput.files[0];
+            const imageName =file["name"] //get file name
+            bucket_name="kevinshi-b2"
+            console.log(file)
+            console.log(file["name"])
+
+            var customtags = document.getElementById('customtagsid').value; //get custom tags string
+            var customtagslist=customtags.split("\n") //split the custom tags into list of strings
+            console.log("custom tags raw: ", customtagslist)
+            var customtagslistfinal=[]
+            for (var i = 0; i < customtagslist.length; i++) { //clean the tags 
+                customtagslist[i] = customtagslist[i].trim()
+                if (customtagslist[i]!=""){
+                    customtagslistfinal.push(customtagslist[i])}}
+            //customtagslistfinal=JSON.stringify(customtagslistfinal)
+            console.log("custom tags final: ", customtagslistfinal)
+            
+            if (file) { //upload
+
+
+                let base64String = "";
+                let reader = new FileReader();
+                console.log("next");
+                reader.onload = function () {
+                    base64String = reader.result.replace("data:", "").replace(/^.+,/, "");
+                    imageBase64Stringsep = base64String;
+                    // alert(imageBase64Stringsep);
+                    console.log("binary picture:",base64String);
+                    sdk.uploadPut({"Content-Type":"text/base64","x-amz-meta-customLabels": customtagslistfinal},
+                        base64String,
+                        {})
+                        .then((response) => {
+                            console.log("response: ",response)
+                                })}  
+                reader.readAsDataURL(file);
+
+                }
+                
+
+                //file=btoa(file)
+                //console.log("binary file: ",base64String)
+                              
+        }
+
+        document.getElementById('searchButton').addEventListener('click', searchImages);
+        function searchImages() {
+            const searchTerm = document.getElementById('searchInput').value;
+            console.log("search term: ",searchTerm)
+            if (searchTerm) {
+                sdk.searchGet({"q":searchTerm},{},{headers : {"X-Api-Key":"7K3TetmMgq697O1G76SuHNGaPnFWwXs4hf72gda2"}})
+                .then((response) => {
+                    console.log("response: ",response);
+                    var data = response.data;
+                    console.log("data: ",data)
+                    images = data
+                    var container = document.getElementById('image-container');
+                    var imageTags = images.map(img => `<img src="${img}">`);
+                    container.innerHTML = imageTags.join('');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            } else {
+                console.error('Please enter a search term');
+            }
+        }
+        function startVoiceRecognition() {
+            const searchInput = document.getElementById('searchInput');
+            const recognition = new webkitSpeechRecognition() || new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
+            
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                searchInput.value = transcript;
+            };
+            
+            recognition.start();
+        }
+
+        document.getElementById('voiceSearchButton').addEventListener('click', startVoiceRecognition);
+    </script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <!-- <script>window.jQuery || document.write('<script src="./assets/js/vendor/jquery.min.js"><\/script>')</script> -->
+    <script src="./assets/js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="./assets/js/ie10-viewport-bug-workaround.js"></script>
+    <!-- custom scroll bar -->
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.3/jquery.mCustomScrollbar.concat.min.js'></script>
+    <!-- chat js -->
+</body>
+</html>
